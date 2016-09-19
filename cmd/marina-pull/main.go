@@ -5,6 +5,7 @@
 package main
 
 import (
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -33,9 +34,26 @@ func run() {
 
 	load := exec.Command("docker", "load")
 	load.Stdin = resp.Body
-	load.Stdout = os.Stdout
-	load.Stderr = os.Stderr
-	err = load.Run()
+	stdout, err := load.StdoutPipe()
+	if err != nil {
+		log.Fatalf("docker-load-stdout %q: %v\n", name, err)
+	}
+
+	stderr, err := load.StderrPipe()
+	if err != nil {
+		log.Fatalf("docker-load-stderr %q: %v\n", name, err)
+	}
+
+	err = load.Start()
+	if err != nil {
+		log.Fatalf("docker-load-start %q: %v\n", name, err)
+		return
+	}
+
+	go io.Copy(os.Stdout, stdout)
+	go io.Copy(os.Stderr, stderr)
+
+	err = load.Wait()
 	if err != nil {
 		log.Fatalf("docker-load %q: %v\n", name, err)
 	}
