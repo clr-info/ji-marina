@@ -21,5 +21,7 @@ A simple `Go` command is also available:
 ```sh
 $> go get github.com/clr-info/ji-marina/cmd/marina-pull
 $> marina-pull piscineri3/go-base:latest
+2016/09/19 16:21:57 pulling "piscineri3/go-base"...
 Loaded image: piscineri3/go-base:latest
+2016/09/19 16:22:13 pulling "piscineri3/go-base"... [done] (16.304998995s)
 ```
