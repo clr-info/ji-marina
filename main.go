@@ -6,6 +6,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -22,7 +23,10 @@ import (
 const imagePrefix = "piscineri3"
 
 func main() {
-	srv := newServer()
+	addr := flag.String("addr", ":80", "web server address")
+	flag.Parse()
+
+	srv := newServer(*addr)
 
 	mux := http.NewServeMux()
 	mux.Handle("/", srv)
@@ -46,7 +50,7 @@ type server struct {
 	cli    *client.Client
 }
 
-func newServer() *server {
+func newServer(addr string) *server {
 	defaultHeaders := map[string]string{"User-Agent": "engine-api-cli-1.0"}
 	cli, err := client.NewClient("unix:///var/run/docker.sock", "v1.22", nil, defaultHeaders)
 	if err != nil {
@@ -54,7 +58,7 @@ func newServer() *server {
 	}
 
 	return &server{
-		addr: ":80",
+		addr: addr,
 		cli:  cli,
 	}
 }
