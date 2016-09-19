@@ -104,6 +104,7 @@ func (srv *server) pull() error {
 		opts := types.ImagePullOptions{All: true}
 		r, err := srv.cli.ImagePull(ctx, img.Name, opts)
 		if err != nil {
+			log.Printf("image-pull error: %v\n", err)
 			return err
 		}
 		defer r.Close()
@@ -111,6 +112,7 @@ func (srv *server) pull() error {
 		const quiet = false
 		load, err := srv.cli.ImageLoad(ctx, r, quiet)
 		if err != nil {
+			log.Printf("image-load error: %v\n", err)
 			return err
 		}
 		defer load.Body.Close()
