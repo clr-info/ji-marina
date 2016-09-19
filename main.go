@@ -53,7 +53,7 @@ func newServer() *server {
 	}
 
 	return &server{
-		addr: ":8080",
+		addr: ":80",
 		cli:  cli,
 	}
 }
