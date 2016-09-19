@@ -31,6 +31,7 @@ func main() {
 
 	go srv.fetchImages()
 
+	log.Printf("ji-marina listening on %q...\n", srv.addr)
 	err := http.ListenAndServe(srv.addr, mux)
 	if err != nil {
 		log.Fatal(err)
