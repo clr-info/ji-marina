@@ -126,29 +126,25 @@ func (srv *server) pull() error {
 
 func (srv *server) image(w http.ResponseWriter, r *http.Request) {
 	const hdr = "/docker-images/"
-	path := r.URL.Path[len(hdr):]
-	log.Printf("image: %v\n", path)
-	if !strings.HasPrefix(path, imagePrefix+"/") {
-		log.Printf("invalid image name\n")
-		http.Error(w, "invalid image name", http.StatusBadRequest)
-		return
-	}
-	switch strings.Count(path, ":") {
+	name := r.URL.Path[len(hdr):]
+	log.Printf("image: %v\n", name)
+
+	switch strings.Count(name, ":") {
 	case 0:
-		path += ":latest"
+		name += ":latest"
 	case 1:
 		// ok
 	default:
-		log.Printf("invalid image name %q\n", path)
-		http.Error(w, "invalid image name ["+path+"]", http.StatusBadRequest)
+		log.Printf("invalid image name %q\n", name)
+		http.Error(w, "invalid image name ["+name+"]", http.StatusBadRequest)
 		return
 	}
 
 	ctx := context.Background()
-	opts := types.ImageListOptions{All: true, MatchName: path}
+	opts := types.ImageListOptions{All: true, MatchName: name}
 	list, err := srv.cli.ImageList(ctx, opts)
 	if err != nil {
-		log.Printf("error: %v\n", err)
+		log.Printf("image-list %q: %v\n", name, err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -159,9 +155,9 @@ func (srv *server) image(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	img, err := srv.cli.ImageSave(ctx, []string{path})
+	img, err := srv.cli.ImageSave(ctx, []string{name})
 	if err != nil {
-		log.Printf("error saving image %q: %v\n", path, err)
+		log.Printf("image-save %q: %v\n", name, err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -169,6 +165,7 @@ func (srv *server) image(w http.ResponseWriter, r *http.Request) {
 
 	_, err = io.Copy(w, img)
 	if err != nil {
+		log.Printf("image-copy %q: %v\n", name, err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
