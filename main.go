@@ -154,9 +154,16 @@ func (srv *server) image(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(list) != 1 {
-		log.Printf("didn't get exactly 1 image (n=%d)\n", len(list))
-		http.Error(w, "not 1 image found", http.StatusBadRequest)
+	switch len(list) {
+	case 0:
+		log.Printf("no such image %q", name)
+		http.Error(w, "no such image ["+name+"]", http.StatusBadRequest)
+		return
+	case 1:
+		// ok
+	default:
+		log.Printf("more than 1 image found for %q (n=%d)\n", name, len(list))
+		http.Error(w, "more than 1 image found for ["+name+"]", http.StatusBadRequest)
 		return
 	}
 
