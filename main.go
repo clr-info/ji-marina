@@ -102,7 +102,7 @@ func (srv *server) pull() error {
 	}
 
 	start := time.Now()
-	var images []string
+	var set map[string]int
 	for _, img := range imgs {
 		imgStart := time.Now()
 		log.Printf("pulling %v...\n", img.Name)
@@ -122,8 +122,16 @@ func (srv *server) pull() error {
 		}
 		defer load.Body.Close()
 		log.Printf("pulling %v... [done] (%v)\n", img.Name, time.Since(imgStart))
-		images = append(images, img.Name)
+		set[img.Name] = 1
 	}
+	for _, img := range srv.images {
+		set[img] = 1
+	}
+	images := make([]string, 0, len(set))
+	for img := range set {
+		images = append(images, img)
+	}
+	sort.Strings(images)
 	srv.images = images
 	log.Printf("pulled %d images in %v\n", len(images), time.Since(start))
 	return nil
