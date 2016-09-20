@@ -26,7 +26,7 @@ func run() {
 	}()
 	log.Printf("pulling %q...\n", name)
 
-	resp, err := http.Get("http://134.158.120.183/docker-images/" + name)
+	resp, err := http.Get("http://piscine.in2p3.fr:8080/docker-images/" + name)
 	if err != nil {
 		log.Fatalf("marina-get %q: %v\n", name, err)
 	}
