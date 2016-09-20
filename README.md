@@ -25,3 +25,13 @@ $> marina-pull piscineri3/go-base:latest
 Loaded image: piscineri3/go-base:latest
 2016/09/19 16:22:13 pulling "piscineri3/go-base"... [done] (16.304998995s)
 ```
+
+Note that by default `marina-pull` will try to pull from `piscine.in2p3.fr`.
+You may change this behaviour by passing `-addr=example.com` or `-addr=192.168.0.2` as an argument:
+
+```sh
+$> marina-pull -addr=19.168.0.2 piscineri3/go-base
+2016/09/20 12:41:10 pulling "piscineri3/go-base"...
+Loaded image: piscineri3/go-base:latest
+2016/09/20 12:41:26 pulling "piscineri3/go-base"... [done] (16.304998995s)
+```

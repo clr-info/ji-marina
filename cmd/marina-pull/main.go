@@ -5,6 +5,7 @@
 package main
 
 import (
+	"flag"
 	"io"
 	"log"
 	"net/http"
@@ -18,7 +19,10 @@ func main() {
 }
 
 func run() {
-	name := os.Args[1]
+	addr := flag.String("addr", "piscine.in2p3.fr", "address of the marina")
+	flag.Parse()
+
+	name := flag.Arg(0)
 
 	start := time.Now()
 	defer func() {
@@ -26,7 +30,7 @@ func run() {
 	}()
 	log.Printf("pulling %q...\n", name)
 
-	resp, err := http.Get("http://piscine.in2p3.fr:8080/docker-images/" + name)
+	resp, err := http.Get("http://" + *addr + ":8080/docker-images/" + name)
 	if err != nil {
 		log.Fatalf("marina-get %q: %v\n", name, err)
 	}
