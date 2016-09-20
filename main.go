@@ -253,13 +253,13 @@ func (srv *server) list(w io.Writer) {
 	fmt.Fprintf(w, "<pre>\n")
 	for _, img := range images {
 		if strings.HasPrefix(img.Name, imagePrefix+"/") {
-			fmt.Fprintf(w, " %-12s   %-50s (%8.3f MB)\n", img.ID[:12], img.Name, float64(img.Size)/1024/1024)
+			fmt.Fprintf(w, " %-12s   %-50s (%8.3f MB) <a href=\"/docker-images/%s\">Download</a>\n", img.ID[:12], img.Name, float64(img.Size)/1024/1024, img.Name)
 		}
 	}
 	fmt.Fprintf(w, "\n")
 	for _, img := range images {
 		if !strings.HasPrefix(img.Name, imagePrefix+"/") {
-			fmt.Fprintf(w, " %-12s   %-50s (%8.3f MB)\n", img.ID[:12], img.Name, float64(img.Size)/1024/1024)
+			fmt.Fprintf(w, " %-12s   %-50s (%8.3f MB) <a href=\"/docker-images/%s\">Download</a>\n", img.ID[:12], img.Name, float64(img.Size)/1024/1024, img.Name)
 		}
 	}
 	fmt.Fprintf(w, "</pre>\n")
