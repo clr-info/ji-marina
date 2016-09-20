@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -222,6 +223,13 @@ func (srv *server) image(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer img.Close()
+
+	fname := name + ".tar.gz"
+	fname = strings.Replace(fname, "/", "-", -1)
+	fname = strings.Replace(fname, ":", "-", -1)
+	w.Header().Set("Content-Disposition", "attachment; filename="+fname)
+	w.Header().Set("Content-Type", "application/gzip")
+	w.Header().Set("Content-Length", strconv.Itoa(int(list[0].Size)))
 
 	_, err = io.Copy(w, img)
 	if err != nil {
