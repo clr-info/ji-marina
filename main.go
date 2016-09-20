@@ -102,7 +102,7 @@ func (srv *server) pull() error {
 	}
 
 	start := time.Now()
-	var set map[string]int
+	set := make(map[string]int, len(imgs))
 	for _, img := range imgs {
 		imgStart := time.Now()
 		log.Printf("pulling %v...\n", img.Name)
