@@ -7,7 +7,7 @@ The `marina` is a simple web server to publish the `piscineri3/*` `Docker` image
 To retrieve an image from this proxy, one can use the `docker load` command:
 
 ```sh
-$> curl -X GET  http://piscine.in2p3:8080/docker-images/piscineri3/go-base:latest | docker load
+$> curl -X GET  http://piscine.in2p3.fr:8080/docker-images/piscineri3/go-base:latest | docker load
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
 100  490M    0  490M    0     0  25.8M      0 --:--:--  0:00:18 --:--:-- 12.4M
