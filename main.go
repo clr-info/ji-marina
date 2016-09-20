@@ -33,21 +33,22 @@ func main() {
 	mux.HandleFunc("/docker-images/", srv.image)
 	mux.HandleFunc("/docker-update", srv.update)
 
-	go srv.fetchImages()
-
-	log.Printf("ji-marina listening on %q...\n", srv.addr)
-	err := http.ListenAndServe(srv.addr, mux)
+	err := srv.fetchStdlibImages()
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	go srv.fetchImages()
+
+	log.Printf("ji-marina listening on %q...\n", srv.addr)
+	log.Fatal(http.ListenAndServe(srv.addr, mux))
 }
 
 type server struct {
 	addr string
 
-	mu     sync.RWMutex
-	images []string
-	cli    *client.Client
+	mu  sync.RWMutex
+	cli *client.Client
 }
 
 func newServer(addr string) *server {
@@ -64,13 +65,12 @@ func newServer(addr string) *server {
 }
 
 func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "<h1>Welcome to the Piscine</h1>\n")
-
+	fmt.Fprintf(w, "<h1>Welcome to the Marina</h1>\n")
 	srv.list(w)
 }
 
 func (srv *server) fetchImages() {
-	ticker := time.NewTicker(5 * time.Minute)
+	ticker := time.NewTicker(1 * time.Hour)
 	defer ticker.Stop()
 
 	err := srv.pull()
@@ -90,50 +90,90 @@ func (srv *server) fetchImages() {
 }
 
 func (srv *server) pull() error {
-	srv.mu.Lock()
-	defer srv.mu.Unlock()
-
-	ctx := context.Background()
-
-	opts := types.ImageSearchOptions{Limit: 100}
-	imgs, err := srv.cli.ImageSearch(ctx, imagePrefix+"/*", opts)
+	imgs, err := srv.fetchRI3ImageList()
 	if err != nil {
 		return err
 	}
 
 	start := time.Now()
-	set := make(map[string]int, len(imgs))
 	for _, img := range imgs {
-		imgStart := time.Now()
-		log.Printf("pulling %v...\n", img.Name)
-		opts := types.ImagePullOptions{All: true}
-		r, err := srv.cli.ImagePull(ctx, img.Name, opts)
+		err := srv.pullImage(img)
 		if err != nil {
-			log.Printf("image-pull error: %v\n", err)
 			return err
 		}
-		defer r.Close()
+	}
+	log.Printf("pulled %d images in %v\n", len(imgs), time.Since(start))
+	return nil
+}
 
-		const quiet = false
-		load, err := srv.cli.ImageLoad(ctx, r, quiet)
+func (srv *server) fetchStdlibImages() error {
+	stdlib := []string{
+		"alpine:latest",
+		"busybox:latest",
+		"debian:latest",
+		"centos:latest",
+		"fedora:latest",
+		"golang:latest",
+		"python:latest",
+		"ubuntu:latest",
+	}
+
+	start := time.Now()
+	log.Printf("pulling stdlib images...\n")
+	for _, name := range stdlib {
+		err := srv.pullImage(name)
 		if err != nil {
-			log.Printf("image-load error: %v\n", err)
 			return err
 		}
-		defer load.Body.Close()
-		log.Printf("pulling %v... [done] (%v)\n", img.Name, time.Since(imgStart))
-		set[img.Name] = 1
 	}
-	for _, img := range srv.images {
-		set[img] = 1
+	log.Printf("pulling stdlib images... [done] (%v)\n", time.Since(start))
+	return nil
+}
+
+func (srv *server) fetchRI3ImageList() ([]string, error) {
+	srv.mu.Lock()
+	defer srv.mu.Unlock()
+
+	ctx := context.Background()
+	opts := types.ImageSearchOptions{Limit: 100}
+	imgs, err := srv.cli.ImageSearch(ctx, imagePrefix+"/*", opts)
+	if err != nil {
+		return nil, err
 	}
-	images := make([]string, 0, len(set))
-	for img := range set {
-		images = append(images, img)
+
+	images := make([]string, len(imgs))
+	for i, img := range imgs {
+		images[i] = img.Name
 	}
-	sort.Strings(images)
-	srv.images = images
-	log.Printf("pulled %d images in %v\n", len(images), time.Since(start))
+	return images, nil
+}
+
+func (srv *server) pullImage(name string) error {
+	srv.mu.Lock()
+	defer srv.mu.Unlock()
+
+	ctx := context.Background()
+	start := time.Now()
+	log.Printf("pulling %v...\n", name)
+	opts := types.ImagePullOptions{}
+	if strings.HasPrefix(name, imagePrefix+"/") {
+		opts.All = true
+	}
+	r, err := srv.cli.ImagePull(ctx, name, opts)
+	if err != nil {
+		log.Printf("image-pull error %q: %v\n", name, err)
+		return err
+	}
+	defer r.Close()
+
+	const quiet = false
+	load, err := srv.cli.ImageLoad(ctx, r, quiet)
+	if err != nil {
+		log.Printf("image-load error %q: %v\n", name, err)
+		return err
+	}
+	defer load.Body.Close()
+	log.Printf("pulling %v... [done] (%v)\n", name, time.Since(start))
 	return nil
 }
 
@@ -202,14 +242,67 @@ func (srv *server) update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (srv *server) list(w io.Writer) {
+
+	images, err := srv.listImages()
+
+	fmt.Fprintf(w, "<h2>Docker images (total=%d)</h2>\n", len(images))
+	if err != nil {
+		log.Printf("<h3>Error retrieving image list: <p>%v</p></h3>\n", err)
+		return
+	}
+	fmt.Fprintf(w, "<pre>\n")
+	for _, img := range images {
+		if strings.HasPrefix(img.Name, imagePrefix+"/") {
+			fmt.Fprintf(w, " %-12s   %-50s (%8.3f MB)\n", img.ID[:12], img.Name, float64(img.Size)/1024/1024)
+		}
+	}
+	fmt.Fprintf(w, "\n")
+	for _, img := range images {
+		if !strings.HasPrefix(img.Name, imagePrefix+"/") {
+			fmt.Fprintf(w, " %-12s   %-50s (%8.3f MB)\n", img.ID[:12], img.Name, float64(img.Size)/1024/1024)
+		}
+	}
+	fmt.Fprintf(w, "</pre>\n")
+}
+
+func (srv *server) listImages() ([]dkrImage, error) {
 	srv.mu.RLock()
 	defer srv.mu.RUnlock()
 
-	fmt.Fprintf(w, "<h2>Docker images (total=%d)</h2>\n", len(srv.images))
-	fmt.Fprintf(w, "<ul>\n")
-	sort.Strings(srv.images)
-	for _, img := range srv.images {
-		fmt.Fprintf(w, "\t<li>%s</li>\n", img)
+	ctx := context.Background()
+	opts := types.ImageListOptions{All: true}
+	imgs, err := srv.cli.ImageList(ctx, opts)
+	if err != nil {
+		return nil, err
 	}
-	fmt.Fprintf(w, "</ul>\n")
+
+	var images []dkrImage
+	for _, img := range imgs {
+		id := img.ID[strings.Index(img.ID, ":")+1:]
+		for _, tag := range img.RepoTags {
+			if tag == "<none>:<none>" || tag == "" {
+				continue
+			}
+			images = append(images, dkrImage{
+				Name: tag,
+				ID:   id,
+				Size: img.VirtualSize,
+			})
+		}
+	}
+
+	sort.Sort(dkrImages(images))
+	return images, nil
 }
+
+type dkrImage struct {
+	Name string
+	ID   string
+	Size int64
+}
+
+type dkrImages []dkrImage
+
+func (p dkrImages) Len() int           { return len(p) }
+func (p dkrImages) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+func (p dkrImages) Less(i, j int) bool { return p[i].Name < p[j].Name }
