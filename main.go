@@ -5,7 +5,9 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"flag"
 	"fmt"
 	"io"
@@ -34,6 +36,7 @@ func main() {
 	mux.Handle("/", srv)
 	mux.HandleFunc("/docker-images/", srv.image)
 	mux.HandleFunc("/docker-update", srv.update)
+	mux.HandleFunc("/logo-marina", logoHandle)
 	if *dir != "" {
 		fs := http.FileServer(http.Dir(*dir))
 		mux.Handle("/files/", http.StripPrefix("/files/", fs))
@@ -72,6 +75,7 @@ func newServer(addr string) *server {
 
 func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "<h1>Welcome to the Marina</h1>\n")
+	fmt.Fprintf(w, `<div id="marina-logo"><img src="/logo-marina" style="float:right; vertical-align: bottom; height: 150px;"></img></div>`)
 	srv.list(w)
 }
 
@@ -305,6 +309,11 @@ func (srv *server) listImages() ([]dkrImage, error) {
 
 	sort.Sort(dkrImages(images))
 	return images, nil
+}
+
+func logoHandle(w http.ResponseWriter, r *http.Request) {
+	img := base64.NewDecoder(base64.StdEncoding, bytes.NewReader([]byte(logoData)))
+	io.Copy(w, img)
 }
 
 type dkrImage struct {
