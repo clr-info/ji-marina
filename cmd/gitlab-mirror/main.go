@@ -80,7 +80,7 @@ func update() error {
 	run("git", "pull", "origin", "master")
 	maybe(func() { run("git", "branch", "-D", "lioran") })
 	run("git", "checkout", "-b", "lioran", "origin/master")
-	run("find", *dir, "-name", "*.md", "-type", "f", "-exec", "sed", "-i", "-e", "s|//gitlab.in2p3.fr/|//"+*ip+"/|g", "{}", "+")
+	run("find", *dir, "-name", "*.md", "-type", "f", "-exec", "sed", "-i", "-e", "s|https://gitlab.in2p3.fr/|http://"+*ip+"/|g", "{}", "+")
 	run("git", "add", "-A", ".")
 	run("git", "commit", "-m", "all: migrate to "+*ip)
 	run("git", "push", "-f", "ji", "lioran")
