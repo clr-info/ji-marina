@@ -24,6 +24,8 @@ const imagePrefix = "piscineri3"
 
 func main() {
 	addr := flag.String("addr", ":80", "web server address")
+	dir := flag.String("dir", "", "directory of cached files to serve")
+
 	flag.Parse()
 
 	srv := newServer(*addr)
@@ -32,6 +34,10 @@ func main() {
 	mux.Handle("/", srv)
 	mux.HandleFunc("/docker-images/", srv.image)
 	mux.HandleFunc("/docker-update", srv.update)
+	if *dir != "" {
+		fs := http.FileServer(http.Dir(*dir))
+		mux.Handle("/files/", http.StripPrefix("/files/", fs))
+	}
 
 	err := srv.fetchStdlibImages()
 	if err != nil {
