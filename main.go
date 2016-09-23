@@ -77,6 +77,7 @@ func (srv *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "<h1>Welcome to the Marina</h1>\n")
 	fmt.Fprintf(w, `<div id="marina-logo"><img src="/logo-marina" style="float:right; vertical-align: bottom; height: 150px;"></img></div>`)
 	srv.list(w)
+	fmt.Fprintf(w, "<h2>Extra files:</h2><a href=\"/files\"><pre>/files</pre></a>\n")
 }
 
 func (srv *server) fetchImages() {
@@ -269,13 +270,13 @@ func (srv *server) list(w io.Writer) {
 	fmt.Fprintf(w, "<pre>\n")
 	for _, img := range images {
 		if strings.HasPrefix(img.Name, imagePrefix+"/") {
-			fmt.Fprintf(w, " %-12s   %-50s (%8.3f MB) <a href=\"/docker-images/%s\">Download</a>\n", img.ID[:12], img.Name, float64(img.Size)/1024/1024, img.Name)
+			fmt.Fprintf(w, " %-12s (%8.3f MB) <a href=\"/docker-images/%s\">%s</a>\n", img.ID[:12], float64(img.Size)/1024/1024, img.Name, img.Name)
 		}
 	}
 	fmt.Fprintf(w, "\n")
 	for _, img := range images {
 		if !strings.HasPrefix(img.Name, imagePrefix+"/") {
-			fmt.Fprintf(w, " %-12s   %-50s (%8.3f MB) <a href=\"/docker-images/%s\">Download</a>\n", img.ID[:12], img.Name, float64(img.Size)/1024/1024, img.Name)
+			fmt.Fprintf(w, " %-12s (%8.3f MB) <a href=\"/docker-images/%s\">%s</a>\n", img.ID[:12], float64(img.Size)/1024/1024, img.Name, img.Name)
 		}
 	}
 	fmt.Fprintf(w, "</pre>\n")
