@@ -42,10 +42,13 @@ func main() {
 		mux.Handle("/files/", http.StripPrefix("/files/", fs))
 	}
 
-	err := srv.fetchStdlibImages()
-	if err != nil {
-		log.Fatal(err)
-	}
+	go func() {
+		time.Sleep(30 * time.Second)
+		err := srv.fetchStdlibImages()
+		if err != nil {
+			log.Printf("stdlib-error: %v\n", err)
+		}
+	}()
 
 	go srv.fetchImages()
 
