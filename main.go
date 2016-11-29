@@ -6,6 +6,7 @@ package main
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/base64"
 	"flag"
@@ -237,13 +238,23 @@ func (srv *server) image(w http.ResponseWriter, r *http.Request) {
 	}
 	defer img.Close()
 
-	fname := name + ".tar"
+	fname := name + ".tar.gz"
 	fname = strings.Replace(fname, "/", "-", -1)
 	fname = strings.Replace(fname, ":", "-", -1)
 	w.Header().Set("Content-Disposition", "attachment; filename="+fname)
-	w.Header().Set("Content-Type", "application/x-tar")
+	w.Header().Set("Content-Type", "application/gzip")
 
-	_, err = io.Copy(w, img)
+	wz := gzip.NewWriter(w)
+	defer wz.Close()
+
+	_, err = io.Copy(wz, img)
+	if err != nil {
+		log.Printf("image-copy %q: %v\n", name, err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err = wz.Close()
 	if err != nil {
 		log.Printf("image-copy %q: %v\n", name, err)
 		http.Error(w, err.Error(), http.StatusBadRequest)

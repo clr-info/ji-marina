@@ -5,6 +5,7 @@
 package main
 
 import (
+	"compress/gzip"
 	"flag"
 	"io"
 	"log"
@@ -19,7 +20,7 @@ func main() {
 }
 
 func run() {
-	addr := flag.String("addr", "piscine.in2p3.fr", "address of the marina")
+	addr := flag.String("addr", "192.168.1.3:8080", "address of the marina")
 	flag.Parse()
 
 	name := flag.Arg(0)
@@ -30,14 +31,20 @@ func run() {
 	}()
 	log.Printf("pulling %q...\n", name)
 
-	resp, err := http.Get("http://" + *addr + ":8080/docker-images/" + name)
+	resp, err := http.Get("http://" + *addr + "/docker-images/" + name)
 	if err != nil {
 		log.Fatalf("marina-get %q: %v\n", name, err)
 	}
 	defer resp.Body.Close()
 
+	rz, err := gzip.NewReader(resp.Body)
+	if err != nil {
+		log.Fatalf("marina-get-gzip %q: %v\n", name, err)
+	}
+	defer rz.Close()
+
 	load := exec.Command("docker", "load")
-	load.Stdin = resp.Body
+	load.Stdin = rz
 	stdout, err := load.StdoutPipe()
 	if err != nil {
 		log.Fatalf("docker-load-stdout %q: %v\n", name, err)
