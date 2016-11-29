@@ -196,6 +196,10 @@ func (srv *server) image(w http.ResponseWriter, r *http.Request) {
 	const hdr = "/docker-images/"
 	name := r.URL.Path[len(hdr):]
 	log.Printf("image: %v\n", name)
+	start := time.Now()
+	defer func() {
+		log.Printf("image: %v [done] (%v)\n", name, time.Since(start))
+	}()
 
 	switch strings.Count(name, ":") {
 	case 0:
